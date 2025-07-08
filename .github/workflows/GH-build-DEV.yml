@@ -1,0 +1,49 @@
+name: GH-build-DEV
+
+on:
+  push:
+    branches:
+      - development
+  pull_request:
+    branches:
+      - development
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    env:
+      DEBUGMAIL_USER: ${{ secrets.DEBUGMAIL_USER }}
+      DEBUGMAIL_PASS: ${{ secrets.DEBUGMAIL_PASS }}
+      TO_EMAIL: ${{ secrets.TO_EMAIL }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore
+
+      - name: Run tests
+        run: dotnet test --no-build --verbosity normal
+
+      - name: Send email on success
+        if: success()
+        run: |
+          echo "Sending email via DebugMail..."
+          curl -X POST https://api.debugmail.io/v1/messages \
+          -u "$DEBUGMAIL_USER:$DEBUGMAIL_PASS" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "to": "'$TO_EMAIL'",
+            "subject": "✅ CI/CD Finalizado correctamente",
+            "text": "La compilación y tests fueron exitosos en el workflow GH-build-DEV."
+          }'
