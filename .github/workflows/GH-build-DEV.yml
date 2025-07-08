@@ -1,49 +1,42 @@
-name: GH-build-DEV
+name: CI/CD GH-build-DEV
 
 on:
   push:
-    branches:
-      - development
-  pull_request:
-    branches:
-      - development
+    branches: [development]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    env:
-      DEBUGMAIL_USER: ${{ secrets.DEBUGMAIL_USER }}
-      DEBUGMAIL_PASS: ${{ secrets.DEBUGMAIL_PASS }}
-      TO_EMAIL: ${{ secrets.TO_EMAIL }}
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - name: Checkout del repositorio
+        uses: actions/checkout@v3
 
-      - name: Setup .NET
+      - name: Instalar .NET SDK 9.0.201
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "9.0.201"
 
-      - name: Restore dependencies
+      - name: Restaurar dependencias
         run: dotnet restore
 
-      - name: Build
+      - name: Compilar el proyecto
         run: dotnet build --no-restore
 
-      - name: Run tests
+      - name: Ejecutar tests
         run: dotnet test --no-build --verbosity normal
 
-      - name: Send email on success
-        if: success()
+      - name: Enviar email de finalización
+        env:
+          USER: ${{ secrets.DEBUGMAIL_USER }}
+          PASS: ${{ secrets.DEBUGMAIL_PASS }}
         run: |
-          echo "Sending email via DebugMail..."
           curl -X POST https://api.debugmail.io/v1/messages \
-          -u "$DEBUGMAIL_USER:$DEBUGMAIL_PASS" \
-          -H "Content-Type: application/json" \
-          -d '{
-            "to": "'$TO_EMAIL'",
-            "subject": "✅ CI/CD Finalizado correctamente",
-            "text": "La compilación y tests fueron exitosos en el workflow GH-build-DEV."
-          }'
+            -u "$USER:$PASS" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "from": "ci@academianovit.local",
+              "to": ["test@debugmail.io"],
+              "subject": "✅ CI/CD AcademiaNovit - Pipeline completado",
+              "html": "<p>El pipeline <strong>GH-build-DEV</strong> finalizó exitosamente en la rama <code>development</code>.</p>"
+            }'
