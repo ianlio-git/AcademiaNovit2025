@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - name: Clonar repositorio
@@ -26,13 +26,20 @@ jobs:
     - name: Ejecutar tests
       run: dotnet test --no-build --verbosity normal
 
-    - name: Enviar email de notificación
+    - name: Enviar email con PowerShell (SMTP)
+      shell: pwsh
       run: |
-        curl -X POST https://api.debugmail.io/v1/messages \
-          -H "Content-Type: application/json" \
-          -d '{
-            "subject": "✅ CI/CD finalizó correctamente",
-            "body": "El pipeline GH‑build‑DEV en development se completó con éxito.",
-            "to": [{"email": "test@debugmail.io"}]
-          }' \
-          -u "${{ secrets.DEBUGMAIL_USERNAME }}:${{ secrets.DEBUGMAIL_PASSWORD }}"
+        $smtpServer = "app.debugmail.io"
+        $smtpPort = 25
+        $smtpUser = "${{ secrets.DEBUGMAIL_USERNAME }}"
+        $smtpPass = "${{ secrets.DEBUGMAIL_PASSWORD }}"
+        $from = "john.doe@example.org"
+        $to = "test@debugmail.io"
+        $subject = "✅ CI/CD finalizado correctamente"
+        $body = "El pipeline GH-build-DEV en la rama development finalizó correctamente."
+
+        $message = New-Object System.Net.Mail.MailMessage $from, $to, $subject, $body
+        $smtp = New-Object Net.Mail.SmtpClient($smtpServer, $smtpPort)
+        $smtp.EnableSsl = $false
+        $smtp.Credentials = New-Object System.Net.NetworkCredential($smtpUser, $smtpPass)
+        $smtp.Send($message)
