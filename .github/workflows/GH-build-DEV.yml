@@ -1,44 +1,38 @@
-name: GH-build-DEV
+name: CI/CD GH-build-DEV
 
 on:
   push:
-    branches: [development]
-  pull_request:
-    branches: [development]
+    branches: [ development ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - name: Clonar repositorio
+      uses: actions/checkout@v4
 
-      - name: Install .NET 9 SDK manually
-        run: |
-          wget https://dotnetcli.azureedge.net/dotnet/Sdk/9.0.100-preview.3/dotnet-sdk-9.0.100-preview.3-linux-x64.tar.gz
-          mkdir -p "$HOME/dotnet"
-          tar -zxf dotnet-sdk-9.0.100-preview.3-linux-x64.tar.gz -C "$HOME/dotnet"
-          echo "$HOME/dotnet" >> $GITHUB_PATH
-          export DOTNET_ROOT="$HOME/dotnet"
-          dotnet --info
+    - name: Instalar .NET SDK 9.0.300
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.300'
 
-      - name: Restore dependencies
-        run: dotnet restore
+    - name: Restaurar dependencias
+      run: dotnet restore
 
-      - name: Build
-        run: dotnet build --no-restore
+    - name: Compilar el proyecto
+      run: dotnet build --no-restore --configuration Release
 
-      - name: Run tests
-        run: dotnet test --no-build --verbosity normal
+    - name: Ejecutar tests
+      run: dotnet test --no-build --verbosity normal
 
-      - name: Send email (DebugMail)
-        run: |
-          curl -X POST https://api.debugmail.io/v1/messages \
-            -H "Content-Type: application/json" \
-            -u "${{ secrets.DEBUGMAIL_USERNAME }}:${{ secrets.DEBUGMAIL_PASSWORD }}" \
-            -d '{
-              "to": [{"email": "test@debugmail.io"}],
-              "subject": "Pipeline ejecutado correctamente",
-              "text": "El workflow se ejecutó con éxito en GitHub Actions."
-            }'
+    - name: Enviar email de notificación
+      run: |
+        curl -X POST https://api.debugmail.io/v1/messages \
+          -H "Content-Type: application/json" \
+          -d '{
+            "subject": "✅ CI/CD finalizó correctamente",
+            "body": "El pipeline GH‑build‑DEV en development se completó con éxito.",
+            "to": [{"email": "test@debugmail.io"}]
+          }' \
+          -u "${{ secrets.DEBUGMAIL_USERNAME }}:${{ secrets.DEBUGMAIL_PASSWORD }}"
