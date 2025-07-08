@@ -9,35 +9,31 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    env:
-      DOTNET_CLI_TELEMETRY_OPTOUT: 1
-      DOTNET_NOLOGO: true
-
     steps:
-      - name: Checkout del código
-        uses: actions/checkout@v3
+    - name: Clonar el repositorio
+      uses: actions/checkout@v4
 
-      - name: Configurar .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.100-preview.3'
+    - name: Instalar .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
 
-      - name: Restaurar dependencias
-        run: dotnet restore
+    - name: Restaurar dependencias
+      run: dotnet restore
 
-      - name: Compilar el proyecto
-        run: dotnet build --no-restore --configuration Release
+    - name: Compilar el proyecto
+      run: dotnet build --no-restore --configuration Release
 
-      - name: Ejecutar tests
-        run: dotnet test --no-build --verbosity normal
+    - name: Ejecutar tests
+      run: dotnet test --no-build --verbosity normal
 
-      - name: Enviar email al finalizar
-        run: |
-          curl -X POST https://api.debugmail.io/v1/messages \
-          -H "Content-Type: application/json" \
-          -d '{
-            "subject": "🚀 Workflow finalizado correctamente",
-            "body": "El pipeline GH-build-DEV en la rama development finalizó correctamente.",
-            "to": [{"email": "john.doe@example.org"}]
-          }' \
-          -u "${{ secrets.DEBUGMAIL_USERNAME }}:${{ secrets.DEBUGMAIL_PASSWORD }}"
+    - name: Enviar email al finalizar
+      run: |
+        curl -X POST https://api.debugmail.io/v1/messages \
+        -H "Content-Type: application/json" \
+        -d '{
+          "subject": "📌 Workflow finalizado correctamente",
+          "body": "El pipeline GH-build-DEV en la rama development finalizó correctamente.",
+          "to": [{"email": "john.doe@example.org"}]
+        }' \
+        -u "${{ secrets.DEBUGMAIL_USERNAME }}:${{ secrets.DEBUGMAIL_PASSWORD }}"
